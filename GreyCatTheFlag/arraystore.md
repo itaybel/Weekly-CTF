@@ -1,6 +1,6 @@
 As always, lets pop the binary into IDA:
 
-```
+```c
 int __cdecl main(int argc, const char **argv, const char **envp)
 {
   __int64 v3; // r15
