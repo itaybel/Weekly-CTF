@@ -1,4 +1,5 @@
 The idea in this challenge is simple:
+
 ![image](https://github.com/Itay212121/Weekly-CTF/assets/56035342/e39f705f-300d-45fd-ac86-2469ef431e36)
 
 We give the program a shellcode, and if it bypasses a filter it will run it.
@@ -8,11 +9,15 @@ We give the program a shellcode, and if it bypasses a filter it will run it.
 ![image](https://github.com/Itay212121/Weekly-CTF/assets/56035342/fac8b584-c84e-4ab3-8639-f3a7569e8967)
 
 the filter basiclly disallows any shellcode which contains the bytes 0xcd,0x80,0xf,0x5,0x89 and 0.
-The program also disallows and syscalls besides those:
+
+The program also disallows all of the syscalls besides those syscalls:
+
 ![image](https://github.com/Itay212121/Weekly-CTF/assets/56035342/509673a1-f611-42d6-9e5e-12e039b8f832)
 
 So we can't just pop a shell, we'll need to make a shellcode which does open-read-write to the flag.
+
 First of all, lets ignore the filter. I let pwntools to create my open-read-write shellcode, and it created this:
+
 ```asm
    0:   6a 01                   push   0x1
    2:   fe 0c 24                dec    BYTE PTR [rsp]
