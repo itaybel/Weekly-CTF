@@ -132,7 +132,7 @@ SO we figured out the first piece of the puzzle, that we need to set the envirom
 but still, thats not enough. we didn't get the flag yet.
 Next thing I checked interesting code in the same function as the number check and the enviroment varible check. if we scroll down a bit we can see this:
 
-```
+```c
 for ( i = 0; ; i = v11 )
   {
     check_next_file(&v14, &v30);
@@ -156,9 +156,9 @@ for ( i = 0; ; i = v11 )
     v7 = v24;
     v8 = (const __m128i *)sub_25F50(v24, v25);
     ```
-    basiclly a for loop which does something interesting. in the check_next_file function we can see a call to readdir64. 
-    after dynamiclly debugging it, I saw that this for loops basiclly loops over ALL of the files in the tmp directory. (which we can create files into!!!)
-    Lets see what checks are there inside the for loop:
+ basiclly a for loop which does something interesting. in the check_next_file function we can see a call to readdir64. 
+ after dynamiclly debugging it, I saw that this for loops basiclly loops over ALL of the files in the tmp directory. (which we can create files into!!!)
+ Lets see what checks are there inside the for loop:
     ```c
     for ( i = 0; ; i = WIN_FLAG )
     {
@@ -174,13 +174,13 @@ for ( i = 0; ; i = v11 )
         WIN_FLAG = i;
     }
     ```
-    in order for the `for` loop to end, we need either to make v14 = 0, whick will happen when we finished all the files in tmp, or if we can make v10 = true, which does some kind of comparassion. lets see whats inside xmmword_42000:
-    `xmmword_42000   xmmword 'gnp.etnaD3<I/pmt/'`
-    
-    wow! this looks like a reverse tmp directory!!
-    after reversing it we got /tmp/I<3Dante.png, which will be our path!
-    
-    We basiclly finished. lets run it on the remote machine:
+   in order for the `for` loop to end, we need either to make v14 = 0, whick will happen when we finished all the files in tmp, or if we can make v10 = true, which does some kind of comparassion. lets see whats inside xmmword_42000:
+   `xmmword_42000   xmmword 'gnp.etnaD3<I/pmt/'`
+
+   wow! this looks like a reverse tmp directory!!
+   after reversing it we got /tmp/I<3Dante.png, which will be our path!
+
+   We basiclly finished. lets run it on the remote machine:
     
     ```
     * COMMAND  DESCRIPTION                 
