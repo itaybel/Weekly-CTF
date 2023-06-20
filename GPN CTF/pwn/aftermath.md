@@ -149,8 +149,15 @@ The binary is compiled with all the mitegations:
     RUNPATH:  '.'
 ```
 
+Full Relro - means that after the linker is finished resolving got entries, it will mark the GOT as read-only page. this protects the binary from got overwrites.
+Stack canary - a random number , placed right before the stored RBP, and after the local variables. it used to to protect the return pointer from buffer overflows.
+NX - this means that the heap/bss/stack regions are maked as non-exectuable pages. only the code-segment is executable.
+PIE - the binary is Position Independent , which means that the binary base address is random , which makes exploitation harder, because we will not know any binary addresses. 
+
 After searching for some bugs, I have found a few things:
-in the `read_note` function, there is an fsb bug - this can lead to all the leaks we need (libc, PIE, canary, stack) , and a potential arbitrary write primitive(not really, since the buffer is in the heap)
+in the `read_note` function, there is a fsb - `printf(cnote->note);`.
+A Format String Bug happens when a a program is using a function like printf, which uses format strings like `%s`, is using a user-supplied data.
+In our case, this can lead to all the leaks we need (libc, PIE, canary, stack) , and a potential arbitrary write primitive(not really, since the buffer is in the heap)
 In the `add_note` function, there is a weird bfferoverflow:
 we can enter a size, and it checks if `abs(size) < 0xff` , which is equivelent to `-0xff < size < 0xff`. this means we can enter negative sizes.
 then a `fgets` will be called on our `data` in the heap. the chunk is of size `abs(size)`, and the fgets is reading `abs(size)` aswell so everything is ok.
@@ -176,7 +183,7 @@ void edit_note() {
 ```
 
 as you can see, it will get our index, and reach to our note struct. then, it will read from the user `note->size` bytes. but remember that `note->size` is a negative number,but `read` takes an unsigned int as a paramater, so we have a huge bof here.
-Then I basiclly used the leak stack canary, and did a basic ret2libc and jumped to `system(/bin/sh)`.
+In my exploit, I first used the fsb, to leak all the stack canary, and libc address then I did a basic ret2libc and jumped to `system(/bin/sh)`.
 
 Full exploit:
 
@@ -251,8 +258,6 @@ rop_chain = 264 * b'A' + p64(canary) + b"BBBBBBBB" + p64(POPRDI) + p64(BINSH) + 
 
 print(rop_chain)
 edit_note(overflow_note, rop_chain)
-
-
 
 
 
