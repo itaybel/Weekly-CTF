@@ -154,7 +154,7 @@ in the `read_note` function, there is an fsb bug - this can lead to all the leak
 In the `add_note` function, there is a weird bfferoverflow:
 we can enter a size, and it checks if `abs(size) < 0xff` , which is equivelent to `-0xff < size < 0xff`. this means we can enter negative sizes.
 then a `fgets` will be called on our `data` in the heap. the chunk is of size `abs(size)`, and the fgets is reading `abs(size)` aswell so everything is ok.
-BUT, when it saves the new note to the global array, it saves `size` as the size, and not `abs(size)`. this can leak to unexpected behaviour. lets see where it uses this struct member:
+BUT, when it saves the new note to the global array, it saves `size` as the size, and not `abs(size)`. this can lead to unexpected behaviour. lets see where it uses this struct member:
 
 ```c
 void edit_note() {
