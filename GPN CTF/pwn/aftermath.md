@@ -180,7 +180,7 @@ Then I basiclly used the leak stack canary, and did a basic ret2libc and jumped 
 
 Full exploit:
 
-```
+```py
 from pwn import *
 
 e = ELF('./aftermath')
