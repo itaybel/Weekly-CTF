@@ -1,5 +1,5 @@
 This challenge is a heap challenge.
-The binary is pretty good, so I will not provide the code.
+The binary is pretty big, so I will not provide the code.
 The binary consists of 5 options:
 ```
 Web Application Firewall Configuration.
