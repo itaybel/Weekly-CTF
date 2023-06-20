@@ -1,7 +1,7 @@
 This chall has 17 solves durning the competition.
 We are given the source code in this chall aswell:
 
-```
+```c
 #include <stddef.h>
 #include <string.h>
 #include <stdio.h>
