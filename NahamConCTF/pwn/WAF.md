@@ -66,6 +66,7 @@ Tcache bins are limited to only 7 chunks, so we can free 7 chunks, then allocate
 	remove()
   ```
   this will make our bins look like this:
+  
   ![image](https://github.com/Itay212121/Weekly-CTF/assets/56035342/8cb07ebe-70b5-4a45-ae2f-a4a39e90c923)
 
   then, we'll use the edit, to trick malloc and add our fake fd:
@@ -87,6 +88,7 @@ Tcache bins are limited to only 7 chunks, so we can free 7 chunks, then allocate
   add(1, 0x18, p64(libc.sym.__free_hook)) 
   ```
   now the bins will look like this:
+  
   ![image](https://github.com/Itay212121/Weekly-CTF/assets/56035342/44787cfc-72fe-497c-94b9-31eb43e92e2a)
   
   now we can just add anything we want of size 0x58, which will delete the head of the tcache bin, and will make it contains just our arbitrary address.
