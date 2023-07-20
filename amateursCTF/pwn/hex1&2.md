@@ -122,7 +122,7 @@ Ez and fun challenge.
 
 *Hex 2*
 
-this challenge is pretty much the same as hex2. here is the source code:
+this challenge is pretty much the same as hex1. here is the source code:
 ```c
 #include <stdio.h>
 #include <stdlib.h>
