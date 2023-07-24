@@ -1,3 +1,4 @@
+
 These two challenges were a pyjail escape challenges. they contain a python code that restircts the character we can write.
 
 Censorship:
