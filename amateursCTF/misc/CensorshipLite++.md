@@ -1,5 +1,5 @@
 Source code:
-```
+```py
 #!/usr/local/bin/python
 flag = "".join([chr(i) for i in range(97, 123)] + ["{}"] + [chr(i) for i in range(65, 91)] + ["_"]) #example flag
 for _ in [flag]:
@@ -101,7 +101,7 @@ def check_blacklisted(c):
 
 So this way we can know each character in the flag! this was a really interseting challenge for me, and it was a good introudction to pyjails which I always wanted to learn.
 Here is the complete code:
-```
+```py
 from pwn import *
 
 
