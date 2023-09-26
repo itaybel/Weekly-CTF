@@ -1,6 +1,6 @@
 This was the third REV challenge of the event. the first two was too easy and I thought they don't deserve a writeup.
 We are given 2 files, an exe file and PCK file.
-Since I had a little experience reversing GODOT games, I knew that we need to reverse a godot game.
+Since I had a little experience reversing games, I knew that we need to reverse a godot game.
 Since we are given the PCK file, I right away cloned the `Godot RE tools` repository, and extraced the gd scripts.
 When you start the game, you are promted with this text:
 
