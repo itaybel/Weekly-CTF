@@ -1,4 +1,10 @@
-Tinypwn was the first pwn challenge I encountered in the CTF. It was a small 32-bit binary, just 69 bytes, and did the following:
+Tinypwn was the first pwn challenge I encountered in the CTF.
+It was pretty easy and I managed to solve it very quick, and even first blooded it:
+
+![image](https://github.com/itaybel/Weekly-CTF/assets/56035342/6895a593-3d57-49d0-b26e-42689f490cdb)
+
+
+It was a small 32-bit binary, just 69 bytes, and did the following:
 
 ![image](https://github.com/itaybel/Weekly-CTF/assets/56035342/6008e3e6-3580-465c-a798-93f0f536cba2)
 
