@@ -91,7 +91,7 @@ This means that it is a constant offset from our dynamic libaries (i.e ld). With
 One thing I knew, is that `ld` stores the binary base address in its writable segment. Then, when exiting the program, it will jump to the memory inside that address + 0x3d88:
 ![image](https://github.com/itaybel/Weekly-CTF/assets/56035342/0844b927-c56d-4515-b14a-41320393bb8a)
 
-If rax is `*(0x7ffff7fef2e0)` = `0x7ffff7ff7000`, it will do `call [rax + 0x3d88]`.
+If rax is `*(0x7ffff7fef2e0)` = `0x7ffff7ff7000`, it will do `call [rax + 0x3d88]`, which under normal circumstances is `__do_global_dtors_aux`.
 So , we can control rax, to be whatever we want, and then it will jump to whats inside that `address + 0x3d88`.
 After a quick search, I found out that the `win` function isn't written in any location inside the memory of that binary, so we should write somewhere ourselves. 
 As seen in the previous screenshot, there is a second binary base address located in ld.
