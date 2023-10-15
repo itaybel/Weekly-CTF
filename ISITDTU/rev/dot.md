@@ -1,4 +1,4 @@
-![image](https://github.com/itaybel/Weekly-CTF/assets/56035342/1f5c4b6a-4be7-4a59-8319-1752589e57f9)Dot was the second reversing challenge in the event.
+Dot was the second reversing challenge in the event.
 It was a basic `dot.exe` binary.
 When we try to run it, we get an error:
 
